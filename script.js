@@ -1,13 +1,15 @@
 fetch('/api/chat', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   },
-  body: JSON.stringify({ message: 'Who is Krishna?' })
+  body: JSON.stringify({ message: transcript })
 })
-  .then(res => res.json())
-  .then(data => {
-    console.log('AI says:', data.reply);
-    // You can display this in your avatar or speech
-  })
-  .catch(err => console.error('Fetch error:', err));
+.then(response => response.json())
+.then(data => {
+  responseElement.innerText = data.reply;
+})
+.catch(error => {
+  console.error('Fetch error:', error); // <== Add this line
+  responseElement.innerText = 'Sorry, I could not reach the server.';
+});

@@ -2,178 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Avatar Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Voice Assistant</title>
   <style>
+    /* Reset & Base */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
-      background: linear-gradient(135deg, #a5b4fc, #f0f9ff);
-    }
-    .container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      max-width: 500px;
-      width: 90%;
-    }
-    #avatar {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      margin: 1rem auto;
-      animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    #responseBox {
-      background: #f1f5f9;
-      padding: 1rem;
-      border-radius: 12px;
-      margin: 1rem 0;
-      min-height: 80px;
-      text-align: left;
-      line-height: 1.5;
-    }
-    #status {
-      color: #64748b;
-      font-size: 0.9rem;
-      margin: 0.5rem 0;
-      min-height: 1.2em;
-    }
-    .controls {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1rem;
-    }
-    button {
-      padding: 0.8rem 1.5rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: transform 0.2s;
-    }
-    button:hover:not(:disabled) {
-      transform: scale(1.05);
-    }
-    #stopBtn {
-      background: #ef4444;
-      color: white;
-    }
-    #startBtn {
-      background: #10b981;
-      color: white;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    html, body { height: 100%; overflow: auto; font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; background: linear-gradient(135deg, #a5b4fc, #f0f9ff); color: #1e293b; }
+    body { display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+
+    .app { display: flex; flex-direction: column; width: 100%; max-width: 1000px; gap: 16px; }
+    @media (min-width: 769px) { .app { flex-direction: row; } }
+
+    .container, .view2 { background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); padding: 16px; overflow: auto; }
+    .container { flex: 2; display: flex; flex-direction: column; text-align: center; }
+    .view2 { flex: 1; display: none; flex-direction: column; }
+    .view2.active { display: flex; }
+
+    h1 { font-size: 1.5rem; margin-bottom:12px; display:flex; justify-content:center; align-items:center; gap:6px; }
+    h1 img { width:28px; }
+
+    #avatar { width:100px; height:100px; margin:0 auto; border-radius:50%; transition:transform .2s ease; }
+    @keyframes float {0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);} }
+
+    #responseBox { background:#f1f5f9; padding:12px; border-radius:12px; margin-top:12px; font-size:.9rem; min-height:60px; text-align:left; line-height:1.4; white-space:pre-wrap; flex-grow:1; }
+    #status { margin-top:8px; font-size:.8rem; color:#64748b; min-height:1.2em; }
+
+    #controls { margin-top:12px; display:flex; justify-content:center; gap:8px; }
+    button { flex:1; padding:10px; font-size:.9rem; border:none; border-radius:8px; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:6px; transition:background .2s; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    #talkBtn { background:#3b82f6; color:#fff; }
+    #talkBtn:hover:not(:disabled) { background:#2563eb; }
+    #stopBtn { background:#ef4444; color:#fff; }
+    #stopBtn:hover:not(:disabled) { background:#dc2626; }
+
+    .view2 h2 { margin-bottom:8px; font-size:1.2rem; color:#1e40af; display:flex; align-items:center; gap:6px; }
+    .snippet, .qa { background:#f8fafc; padding:12px; border-radius:8px; margin-top:8px; overflow-x:auto; font-family:'Courier New', monospace; font-size:.85rem; white-space:pre-wrap; }
+    .copyBtn { margin-top:6px; align-self:flex-end; padding:6px 10px; font-size:.8rem; background:#10b981; color:#fff; border:none; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+    .copyBtn:hover { background:#059669; }
+
+    @media (max-width:768px) {
+      h1 { font-size:1.25rem; }
+      #avatar { width:80px; height:80px; }
+      #responseBox, .snippet, .qa { font-size:.85rem; }
+      button { font-size:.85rem; padding:8px; }
+      .view2 { margin-top:16px; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <img id="avatar" src="avatar.png" alt="AI Avatar" />
-    <div id="responseBox">Hi! I'm your AI assistant. Click anywhere to begin.</div>
-    <div id="status">Waiting for your click to start...</div>
-    <div id="view2"></div>
-    <div class="controls">
-      <button id="startBtn" disabled>Start</button>
-      <button id="stopBtn" disabled>Stop</button>
+  <div class="app">
+    <div class="container">
+      <h1>🎤 AI Voice Assistant <img src="https://img.icons8.com/color/48/000000/robot-2.png" alt="Bot"/></h1>
+      <img id="avatar" src="sirganguly.jpg" alt="Avatar" />
+      <div id="responseBox">Ask me anything about computer science…</div>
+      <div id="status"></div>
+      <div id="controls">
+        <button id="talkBtn" disabled><img src="https://img.icons8.com/ios-filled/24/ffffff/microphone.png" alt="Talk" />Talk</button>
+        <button id="stopBtn" disabled><img src="https://img.icons8.com/ios-filled/24/ffffff/stop.png" alt="Stop" />Stop</button>
+        <button id="testBtn" onclick="testSound()" style="background:#10b981; color:#fff; margin-top:8px;"><img src="https://img.icons8.com/ios-filled/24/ffffff/speaker.png" alt="Test" />Test Sound</button>
+      </div>
     </div>
+    <div class="view2" id="view2"></div>
   </div>
-
   <script>
     const API_URL = '/api/chat';
-    const startBtn = document.getElementById('startBtn');
+    const talkBtn = document.getElementById('talkBtn');
     const stopBtn = document.getElementById('stopBtn');
     const statusEl = document.getElementById('status');
     const responseBox = document.getElementById('responseBox');
     const avatar = document.getElementById('avatar');
     const view2 = document.getElementById('view2');
 
-    let recognition, utterance, isListening = false, isSpeaking = false, maleVoice = null;
+    let recognition, utterance, isListening = false;
+    let isSpeaking = false;
+    let maleVoice = null;
 
-    function loadVoices() {
-      const voices = window.speechSynthesis.getVoices();
-      maleVoice = voices.find(v => v.name.includes('Male')) ||
-                  voices.find(v => v.name.includes('David')) ||
-                  voices.find(v => v.name.includes('Mark')) ||
-                  voices.find(v => v.lang.startsWith('en-US')) ||
-                  voices.find(v => v.lang.startsWith('en')) ||
-                  voices[0];
-      if (voices.length > 0) {
-        statusEl.textContent = 'Voice ready. Click to begin.';
-      }
-    }
-
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    setTimeout(loadVoices, 100);
-    setTimeout(loadVoices, 1000);
+    // load male voice
+    window.speechSynthesis.onvoiceschanged = () => {
+      maleVoice = window.speechSynthesis.getVoices().find(v => /male/i.test(v.name));
+    };
 
     function initRecognition() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) {
-        statusEl.textContent = 'Speech Recognition not supported.';
-        return;
-      }
-      recognition = new SR();
-      recognition.lang = 'en-IN';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        isListening = true;
-        statusEl.textContent = 'Listening...';
-        stopBtn.disabled = false;
-      };
-
+      if (!SR) { statusEl.textContent = 'Speech Recognition not supported.'; return; }
+      recognition = new SR(); recognition.lang = 'en-IN'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+      recognition.onstart = () => { isListening = true; statusEl.textContent = 'Listening...'; talkBtn.disabled = true; stopBtn.disabled = false; };
       recognition.onresult = async e => {
         stopSpeech();
         const transcript = e.results[0][0].transcript;
-        responseBox.textContent = transcript;
-        statusEl.textContent = 'Thinking...';
-        cleanupView2();
+        responseBox.textContent = transcript; statusEl.textContent = 'Thinking...'; cleanupView2();
         try {
-          const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: transcript })
-          });
+          const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: transcript }) });
           const data = await res.json();
           processReply(data.reply);
         } catch {
           processReply('Sorry, I could not reach the server.');
         }
       };
-
-      recognition.onerror = e => {
-        statusEl.textContent = 'Error: ' + e.error;
-        cleanup();
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        if (!isSpeaking) {
-          stopBtn.disabled = true;
-          startBtn.disabled = false;
-        }
-      };
+      recognition.onerror = e => { statusEl.textContent = 'Error: ' + e.error; cleanup(); };
+      recognition.onend = () => { isListening = false; if (!isSpeaking) talkBtn.disabled = false; stopBtn.disabled = true; };
     }
 
     function processReply(reply) {
+      // detect code blocks
       const codeMatch = reply.match(/```([\s\S]*?)```/);
       const qaMatch = reply.match(/\*\*(.*?)\*\*([\s\S]*)/);
       if (codeMatch) {
@@ -200,71 +131,70 @@
       view2.classList.add('active');
     }
 
-    function cleanupView2() {
-      view2.innerHTML = '';
-      view2.classList.remove('active');
-    }
+    function cleanupView2() { view2.innerHTML = ''; view2.classList.remove('active'); }
 
     function speakText(text) {
-      if (!text || text.trim() === '') return;
-
-      if (!window.speechSynthesis) {
-        statusEl.textContent = 'Speech synthesis not supported in this browser';
-        return;
-      }
-
       stopSpeech();
-      isSpeaking = true;
-      statusEl.textContent = 'Speaking...';
-      stopBtn.disabled = false;
-      startBtn.disabled = true;
+      isSpeaking = true; 
+      statusEl.textContent = 'Speaking...'; 
+      stopBtn.disabled = false; 
       avatar.style.animation = 'float 1s ease-in-out infinite';
-
+      
       utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
+      utterance.lang = 'en-US'; // Changed to en-US for better compatibility
+      utterance.rate = 0.9; // Slightly slower for clarity
       utterance.pitch = 1;
-      utterance.volume = 1;
-      if (maleVoice) utterance.voice = maleVoice;
-
-      utterance.onerror = event => {
+      utterance.volume = 1; // Ensure full volume
+      
+      // Get available voices and select a good one
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => v.lang.includes('en') && v.name.includes('David')) || 
+                           voices.find(v => v.lang.includes('en') && v.name.includes('Male')) ||
+                           voices.find(v => v.lang.includes('en'));
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      
+      utterance.onstart = () => {
+        console.log('Speech started');
+        statusEl.textContent = 'Speaking...';
+      };
+      
+      utterance.onend = () => { 
+        console.log('Speech ended');
+        isSpeaking = false; 
+        avatar.style.animation = ''; 
+        statusEl.textContent = ''; 
+        stopBtn.disabled = true; 
+        talkBtn.disabled = false; 
+      };
+      
+      utterance.onerror = (event) => {
+        console.error('Speech error:', event);
         statusEl.textContent = 'Speech error: ' + event.error;
         isSpeaking = false;
         avatar.style.animation = '';
         stopBtn.disabled = true;
+        talkBtn.disabled = false;
       };
-
-      utterance.onstart = () => {
-        statusEl.textContent = 'Speaking...';
-      };
-
-      utterance.onend = () => {
+      
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error('Speech synthesis error:', error);
+        statusEl.textContent = 'Speech synthesis not available';
         isSpeaking = false;
         avatar.style.animation = '';
-        statusEl.textContent = 'Ready to talk!';
         stopBtn.disabled = true;
-        startBtn.disabled = false;
-      };
-
-      setTimeout(() => {
-        try {
-          speechSynthesis.speak(utterance);
-        } catch (error) {
-          statusEl.textContent = 'Error starting speech: ' + error.message;
-          isSpeaking = false;
-          avatar.style.animation = '';
-          stopBtn.disabled = true;
-        }
-      }, 100);
+        talkBtn.disabled = false;
+      }
     }
 
     function stopSpeech() {
       if (speechSynthesis.speaking || speechSynthesis.pending) {
         speechSynthesis.cancel();
-        isSpeaking = false;
-        avatar.style.animation = '';
-        statusEl.textContent = '';
-        stopBtn.disabled = true;
+        isSpeaking = false; avatar.style.animation = ''; statusEl.textContent = ''; stopBtn.disabled = true; talkBtn.disabled = false;
       }
     }
 
@@ -273,25 +203,18 @@
       stopSpeech();
     }
 
-    startBtn.onclick = () => {
-      if (!recognition) initRecognition();
-      if (!isListening) {
-        recognition.start();
-        startBtn.disabled = true;
-      }
-    };
+    // Test sound function
+    function testSound() {
+      speakText("Hello! This is a test of the sound system. If you can hear this, the voice output is working correctly.");
+    }
 
-    stopBtn.onclick = () => {
-      stopSpeech();
-      if (isListening) recognition.stop();
-    };
-
-    // Wait for user click to unlock speech synthesis
-    window.addEventListener('click', function handleClickOnce() {
-      window.removeEventListener('click', handleClickOnce);
-      initRecognition(); // prepare speech recognition
+    // initial setup and greeting
+    initRecognition();
+    window.addEventListener('load', () => {
       processReply('Hello I am Sir Ganguly. Welcome to my AI Avatar Experiment. Feel free to learn new things with me.');
     });
+    talkBtn.onclick = () => { cleanup(); recognition.start(); };
+    stopBtn.onclick = () => { stopSpeech(); if (isListening) recognition.stop(); };
   </script>
 </body>
 </html>

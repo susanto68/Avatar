@@ -1,57 +1,58 @@
-// api/chat.js
-import { readFileSync } from 'fs';
-import { join } from 'path';
+const { readFileSync } = require('fs');
+const { join } = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+// Load once at cold start from the project root api/ folder
+let SYSTEM_PROMPT;
+try {
+  SYSTEM_PROMPT = readFileSync(
+    join(process.cwd(), 'api', 'system_prompt.txt'),
+    'utf8'
+  ).trim();
+} catch (error) {
+  console.error('Error loading system prompt:', error);
+  SYSTEM_PROMPT = "You are Susanto Ganguly, known as Sir Ganguly, a supportive computer teacher.";
+}
 
-// Read system prompt from file
-const SYSTEM_PROMPT = readFileSync(
-  join(process.cwd(), 'api', 'system_prompt.txt'),
-  'utf8'
-).trim();
+const express = require('express');
+const router = express.Router();
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+router.post('/', async (req, res) => {
   const { message } = req.body;
-
   if (!message) {
     return res.status(400).json({ error: 'No message provided' });
   }
 
+  // Check if Gemini API key is available
+  if (!process.env.GEMINI_API_KEY) {
+    // Provide a mock response for testing
+    const mockResponses = [
+      "Hello! I'm Sir Ganguly. Welcome to my AI Avatar experiment! I'm here to help you learn computer science.",
+      "Great question! I'm currently in test mode. I can help you with programming concepts, algorithms, and computer science topics.",
+      "I'm here to help with computer science questions! Feel free to ask me about Java, Python, algorithms, or any programming topic.",
+      "Welcome to the AI Avatar experiment! I'm Sir Ganguly, your computer science teacher. What would you like to learn today?",
+      "Excellent! I'm ready to help you with computer science. Ask me about programming languages, data structures, or any tech topic!",
+      "Hello there! I'm Sir Ganguly. I specialize in teaching computer science and programming. What's on your mind today?"
+    ];
+    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    return res.status(200).json({ reply: randomResponse });
+  }
+
   try {
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${SYSTEM_PROMPT}\n\nUser: ${message.trim()}`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000
-        }
-      })
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const data = await geminiRes.json();
+    const prompt = `${SYSTEM_PROMPT}\n\nUser: ${message.trim()}\n\nSir Ganguly:`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
 
-    if (!geminiRes.ok) {
-      throw new Error(data.error?.message || 'AI error');
-    }
-
-    const reply = data.candidates[0]?.content?.parts?.[0]?.text || 'No reply generated.';
-    res.status(200).json({ reply: reply.trim() });
-
+    res.status(200).json({ reply: text.trim() });
   } catch (err) {
     console.error('Gemini API error:', err);
     res.status(500).json({ error: 'AI service error' });
   }
-}
+});
+
+module.exports = router;
